@@ -154,3 +154,8 @@ Assistant: I found a flight for you!
 
 If you need any further assistance or details, feel free to ask!
 ```
+## Issue Support
+
+The code in this repository is provided and maintained on a community basis, and is not covered by any IBM commercial support agreement or warranty.
+
+For enhancements, issues and fixes you are welcome raise an issue against this repository so that it may be considered. 
