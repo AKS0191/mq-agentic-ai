@@ -4,14 +4,18 @@ This repository demonstrates the integration of IBM MQ with LLM Agentic Applicat
 
 # MQ for Agent State Management
 The `primary_agent` is a LangGraph-based example illustrating how IBM MQ enables real-time agent state updates. This feature leverages the MQ Publish/Subscribe pattern, ideal for scenarios where an agent’s state must reflect external events. To enable this:
-The agent’s `env.json` configuration file specifies the IBM MQ topic for receiving state updates.
-
-A callback method (`on_state_change`) processes these updates within the agent, ensuring dynamic state management.
+- The agent’s `env.json` `STATE_NETWORK` configuration specifies the IBM MQ topic for receiving state updates.
+- A callback method (`on_state_change`) processes these updates within the agent, ensuring dynamic state management.
 
 # MQ for Distributed Agents
-The `primary_agent` and `flights_searcher` agents demonstrate how IBM MQ supports Distributed Multi-Agent Systems (DMAS). DMAS extends traditional multi-agent systems by allowing agents to operate asynchronously on independent networks, collaborating through reliable message exchange via IBM MQ. To enable DMAS, the following features are provided (by inheriting the MQBaseAssistant class in your agent):
+The `primary_agent` and `flights_searcher` agents demonstrate how IBM MQ supports Distributed Multi-Agent Systems (DMAS). 
+DMAS extends traditional multi-agent systems by allowing agents to operate asynchronously on independent networks, collaborating through reliable message exchange via IBM MQ. 
+Each agent’s network configuration, defined in `env.json`, includes `OUTBOUND_NETWORK` for delegating tasks to other agents based on their `AGENT_DESCRIPTION` and `INBOUND_NETWORK` for receiving messages from other agents via a specified queue. 
+Each message object exchanged between agents encapsulates a unique `thread_id`, enabling agents to track and retrieve the conversation history. This `thread_id` is included in the message payload and used by each agent logic to maintain context across interactions. 
+
+To enable DMAS, the following features are provided:
 - Network Configuration:
- 1. `OUTBOUND NETWORK`: Agents securely delegate messages with others by defining the `OUTBOUND_NETWORK` in their `env.json` configuration file, facilitating seamless communication across the distributed system. The `AGENT_DESCRIPTION` field specifies an agent’s role or task, guiding the delegation of messages to the appropriate agent within the system. This field is defined in each `OUTBOUND_NETWORK` endpoint and used by the agent or IBM MQ routing to match messages to agents based on their roles.
+ 1. `OUTBOUND NETWORK`: The `OUTBOUND_NETWORK`, defined in each agent’s `env.json` configuration file, enables agents to securely delegate tasks to other agents in the Distributed Multi-Agent System (DMAS) by specifying IBM MQ connection details and target agent roles. It consists of one or more `MQ_ENDPOINTS`, each defining a queue for sending messages, along with authentication credentials (`APP_USER`, `APP_PASSWORD`) to ensure secure communication. The `AGENT_DESCRIPTION` field within each `MQ_ENDPOINT` specifies the role or task of the target agent (e.g., “Handles flight search and booking requests”), allowing the sending agent to route messages to the appropriate agent based on its role. For example, the `primary_agent` may send a flight search request to a queue associated with the `flights_searcher` agent’s `AGENT_DESCRIPTION`. Dynamic queues, configured via `MODEL_QUEUE_NAME` and `DYNAMIC_QUEUE_PREFIX`, support temporary reply queues for asynchronous responses.
 
   ```
   "OUTBOUND_NETWORK": {
@@ -31,7 +35,7 @@ The `primary_agent` and `flights_searcher` agents demonstrate how IBM MQ support
   }
   ```
 
-  2. `INBOUND NETWORK`: An agent monitors incoming messages from other agents by specifying `INBOUND_NETWORK` in its `env.json` configuration file.
+  2. `INBOUND NETWORK`: The `INBOUND_NETWORK`, defined in each agent’s `env.json` configuration file, enables agents to receive and process messages from other agents in the Distributed Multi-Agent System (DMAS) by specifying IBM MQ connection details for queues or topics. Agents monitor their `INBOUND_NETWORK` to asynchronously process incoming messages. For example, the `flights_searcher` agent listens to the `FLIGHT_REQUESTS` queue to handle flight search requests delegated by the `primary_agent`.
   ```
     "INBOUND_NETWORK": {
       "MQ_ENDPOINTS" : [
@@ -41,18 +45,16 @@ The `primary_agent` and `flights_searcher` agents demonstrate how IBM MQ support
         "QMGR": "QM name",
         "APP_USER": "authorised user",
         "APP_PASSWORD": "auhtorised user password",
-        "QUEUE_NAME": "queue name",
-        "MODEL_QUEUE_NAME": "model queue name eg: DEV.APP.MODEL.QUEUE",
-        "DYNAMIC_QUEUE_PREFIX": "dynamic queue prefix eg. APP.REPLIES.*"
+        "QUEUE_NAME": "queue name"
       ]
     }  
   ```
-  Secure communication can be enabled by including within each `MQ_ENDPOINTS` then following fields:
+  Secure communication can be enabled by including within each `MQ_ENDPOINTS` the following fields:
   ```
   CIPHER_SUITE - If present in the env.json, TLS Cipher specification to use
   KEY_REPOSITORY - Path to the keystore .kbd and .sth files. If running on Apple Silicon then this will the path to the queue manager's exported .pem. If present in the env.json, TLS is enabled - this is on the app side.
   ```
-- Networking tools: a collection of pre-built tools is integrated into an agent, enabling seamless message transmission between agents within the `OUTBOUND_NETWORK`. These tools facilitate reliable and secure communication, ensuring messages are routed effectively across the network.
+- Networking tools: a collection of pre-built networking tools is provided, enabling seamless message transmission between agents within the `OUTBOUND_NETWORK`. These tools facilitate reliable and secure communication, ensuring messages are routed effectively across the network.
 - Listener incoming messages: ability to initiate an asynchronous agent workflow upon receiving a new message in the `INBOUND_NETWORK`.
 
 ## Getting Started
