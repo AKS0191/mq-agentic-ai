@@ -51,21 +51,45 @@ In order to enable DMAS the following features are provided in this repo (by inh
 - networking tools: set of tools bounded into an agent to permit messages to flow from one agent to another within the OUTBOUND_NETWORK
 - listener incoming messages: capability to start an async agent workflow when a new message arrives in the INBOUND_NETWOKRK
 
-### Install MQ Toolkit
-`https://public.dhe.ibm.com/ibmdl/export/pub/software/websphere/messaging/mqdev/mactoolkit/`
-Add locations of the bin directories /opt/mqm/bin and /opt/mqm/samp/bin to the PATH by editing /etc/paths 
 
-### Link MQ Toolkit libs
-```
-export MQ_INSTALLATION_PATH=/opt/mqm
-export LD_LIBRARY_PATH=/opt/mqm/lib64
-export DYLD_LIBRARY_PATH=/opt/mqm/lib64
-```
+## Getting Started
+This python samples are based on https://dsuch.github.io/pymqi/
+and have been tested with python 3.10.12,3.11.9 and 3.12.5
 
-### Clone this repository
+Python PyMQI library uses the IBM MQ C client libraries through the MQI interface.
+
+The library needs to be compiled with a C compiler which you need to have installed in your development environment.
+
+For example, on MacOS we used `XCode`, on Windows the `Desktop development with C++` module inside Visual Studio and on Ubuntu the `gcc` GNU Compiler Collection.
+
+Install/unzip IBM MQ client
+
+### Mac
+
+[IBM MQ MacOS toolkit for developers download](https://public.dhe.ibm.com/ibmdl/export/pub/software/websphere/messaging/mqdev/mactoolkit/)
+
+Add
+`/opt/mqm/bin` and
+`/opt/mqm/samp/bin`, to the PATH by editing `/etc/paths`
+
+execute the following command:
+`export DYLD_LIBRARY_PATH=/opt/mqm/lib64`
+
+### Windows
+
+[Windows MQ redist client download](https://public.dhe.ibm.com/ibmdl/export/pub/software/websphere/messaging/mqdev/redist/)
+
+### Linux Ubuntu
+
+[Linux MQ redist client download](https://public.dhe.ibm.com/ibmdl/export/pub/software/websphere/messaging/mqdev/redist/)
+
+For installation instructions please go to 
+#### [linux installation](../../mq-dev-patterns/installationDocs/linuxUbuntu-installationSteps.md)
+
+### Clone the repository
 ```
 git clone https://github.ibm.com/FrancescoRinaldi/agentic-mq
-cd agentic-mq
+cd mq-agentic-ai
 ```
 
 ### Install requirements
@@ -73,9 +97,10 @@ cd agentic-mq
 pip install -r requirements.txt
 ```
 
-### Queue Manager set up:
-You might need to prepare the queue manager first. 
-To run these examples, the Queue Manager can be configured following the commands within the `qm_set_up.txt` file.
+### Set up the Queue Manager
+You might need to set up a Queue Manage before running these samples.
+To get your MQ server set up, check out [Ready, Set, Connect](https://developer.ibm.com/series/mq-ready-set-connect/).
+The Queue Manager configuration to run these samples can be obtained by following the commands within the `qm_set_up.txt` file.
 
 ### Run the code
 Set `MQ_HOST_IP`, `MQ_HOST_PORT`, and `APP_USER_PASSWORD` within each agent `env.json`.
@@ -102,12 +127,12 @@ User: whats the latest price?
 
 Assistant: The latest price for your tracked flight (Flight FR5678) from Newcastle to Faro on May 11, 2025, is £151. There are 3 seats left. If you have any other questions or need assistance, just let me know!
 ```
-#### MQ For Distribued Agent
+#### MQ For Distributed Multi-Agent Systems (DMAS)
 Start the primary agent and ask for a new flight booking. You will notice that this request will be delegated to the FlightSearchAgent which is running on its own resource&network and it will handle and reply to the incominc flight booking request whenever available. Regardless of the up/down state of FlightSearchAgent the the flight booking request won't be lost as IBM MQ is used to exchange async messages in a relibale and secure way.
 ```
 python start_primary_agent.py
 ```
-Start the flight searcher agent on a fresh terminal tab
+Start the flight searcher agent on a new terminal tab
 ```
 python start_flight_researcher.py
 
@@ -154,3 +179,6 @@ Assistant: I found a flight for you!
 
 If you need any further assistance or details, feel free to ask!
 ```
+
+## Want to learn more?
+If you keen to learn more about IBM MQ samples and built applications check [mq-dev-patterns](https://github.com/ibm-messaging/mq-dev-patterns).

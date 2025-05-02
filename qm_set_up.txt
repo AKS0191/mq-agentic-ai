@@ -1,14 +1,4 @@
 
-https://public.dhe.ibm.com/ibmdl/export/pub/software/websphere/messaging/mqdev/mactoolkit/
-
-Add locations of the bin directories /opt/mqm/bin and /opt/mqm/samp/bin to the PATH by editing /etc/paths 
-
-export MQ_INSTALLATION_PATH=/opt/mqm
-export LD_LIBRARY_PATH=/opt/mqm/lib64
-export DYLD_LIBRARY_PATH=/opt/mqm/lib64
-
-pip install pymqi
-
 crtmqmq QMAPP
 strmqm QMAPP
 
@@ -29,7 +19,6 @@ SET AUTHREC PROFILE(DEV.APP.MODEL.QUEUE) OBJTYPE(QUEUE) PRINCIPAL('agentapp') AU
 ALTER CHANNEL(MQAPP.SVRCONN) CHLTYPE(SVRCONN) MCAUSER('agentapp')
 ALTER CHANNEL(MQAPP.SVRCONN) CHLTYPE(SVRCONN) SSLCAUTH(OPTIONAL)
 
-# ALTER QMGR CHLAUTH(DISABLED) 
 
 REFRESH SECURITY
 
