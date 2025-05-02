@@ -1,6 +1,6 @@
 
 # IBM MQ for LLM Agentic Applications
-This repository demonstrates the integration of IBM MQ with LLM Agentic Applications to support event-driven agents and Distributed Multi-Agent Systems (DMAS), an advanced evolution of traditional multi-agent systems. For this example, LangGraph is used as the agentic framework to showcase the functionality.
+This repository demonstrates the integration of IBM MQ with LLM Agentic Applications to support event-driven agents and Distributed Multi-Agent Systems (DMAS), an advanced evolution of traditional multi-agent systems. At the moment we have only integrated with LangGraph, a popular open-source agentic AI framework, to demonstrate our vision for MQ as async message broker. However, we hope to see this work lead to integrations with existing protocols (A2A, ACP, MCP), other agentic frameworks, and use cases.
 
 # MQ for Agent State Management
 The `primary_agent` is a LangGraph-based example illustrating how IBM MQ enables real-time agent state updates. This feature leverages the MQ Publish/Subscribe pattern, ideal for scenarios where an agent’s state must reflect external events. To enable this:
