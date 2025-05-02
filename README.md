@@ -1,18 +1,17 @@
 
 # IBM MQ for LLM Agentic Applications
-This repo shows how IBM MQ can be used within LLM Agentic Applications for event-driven agents and Distributed Multi-Agent Systems (DMAS), an evolution of traditional multi-agent systems. For the pure purpose of this sample, LangGraph was chosen as the agentic framework to illustrate its functionality.
+This repository demonstrates the integration of IBM MQ with LLM Agentic Applications to support event-driven agents and Distributed Multi-Agent Systems (DMAS), an advanced evolution of traditional multi-agent systems. For this example, LangGraph is used as the agentic framework to showcase the functionality.
 
-## MQ For Agents' State: 
-`primary_agent` is a LangGraph agent example showing how MQ can be used to update an agent's state in real-time.
-This capability uses the Pub/Sub MQ pattern and is relevant in use cases requiring the agent' state to be updated based on external events.
-To enable this feature, the agent's configuration `env.json` file specifies the IBM MQ topic for receiving state updates. A callback method (`on_state_change`) handles the state changes within the agent.
+# MQ for Agent State Management
+The `primary_agent` is a LangGraph-based example illustrating how IBM MQ enables real-time agent state updates. This feature leverages the MQ Publish/Subscribe pattern, ideal for scenarios where an agent’s state must reflect external events. To enable this:
+The agent’s `env.json` configuration file specifies the IBM MQ topic for receiving state updates.
 
-## MQ For Distribued Agents
-`primary_agent` and `flights_searcher` are two agents showing an example of how IBM MQ can be used by Distributed Multi-Agent Systems (DMAS). 
-DMAS are an evolution of common multi-agent systems in which each agent runs in its own network asynchronously and cooperate & collaborate with other agents by exchanging messages reliably via IBM MQ.
-In order to enable DMAS the following features are provided in this repo (by inheriting `MQBaseAssistant` into your agent class):
-- network definition:
-  1. An agent can securely exchange messages to another agent by defining the OUTBOUND_NETWORK within its `env.json` file.
+A callback method (`on_state_change`) processes these updates within the agent, ensuring dynamic state management.
+
+# MQ for Distributed Agents
+The `primary_agent` and `flights_searcher` agents demonstrate how IBM MQ supports Distributed Multi-Agent Systems (DMAS). DMAS extends traditional multi-agent systems by allowing agents to operate asynchronously on independent networks, collaborating through reliable message exchange via IBM MQ. To enable DMAS, the following features are provided (by inheriting the MQBaseAssistant class in your agent):
+- Network Configuration:
+ 1. `OUTBOUND NETWORK`: Agents securely delegate messages with others by defining the `OUTBOUND_NETWORK` in their `env.json` configuration file, facilitating seamless communication across the distributed system. The `AGENT_DESCRIPTION` field specifies an agent’s role or task, guiding the delegation of messages to the appropriate agent within the system. This field is defined in each `OUTBOUND_NETWORK` endpoint and used by the agent or IBM MQ routing to match messages to agents based on their roles.
 
   ```
   "OUTBOUND_NETWORK": {
@@ -22,7 +21,7 @@ In order to enable DMAS the following features are provided in this repo (by inh
         "CHANNEL": "MQ Channel",
         "QMGR": "QM name",
         "APP_USER": "authorised user",
-        "APP_PASSWORD": "auhtorised user password",
+        "APP_PASSWORD": "authorised user password",
         "QUEUE_NAME": "queue name",
         "MODEL_QUEUE_NAME": "model queue name eg: DEV.APP.MODEL.QUEUE",
         "DYNAMIC_QUEUE_PREFIX": "dynamic queue prefix eg. APP.REPLIES.*"
@@ -32,7 +31,7 @@ In order to enable DMAS the following features are provided in this repo (by inh
   }
   ```
 
-  2. An agent can be listening for incoming messages from other agents by defining INBOUND_NETWOKRK within its `env.json` file:
+  2. `INBOUND NETWORK`: An agent monitors incoming messages from other agents by specifying `INBOUND_NETWORK` in its `env.json` configuration file.
   ```
     "INBOUND_NETWORK": {
       "MQ_ENDPOINTS" : [
@@ -46,14 +45,18 @@ In order to enable DMAS the following features are provided in this repo (by inh
         "MODEL_QUEUE_NAME": "model queue name eg: DEV.APP.MODEL.QUEUE",
         "DYNAMIC_QUEUE_PREFIX": "dynamic queue prefix eg. APP.REPLIES.*"
       ]
-    }
+    }  
   ```
-- networking tools: set of tools bounded into an agent to permit messages to flow from one agent to another within the OUTBOUND_NETWORK
-- listener incoming messages: capability to start an async agent workflow when a new message arrives in the INBOUND_NETWOKRK
-
+  Secure communication can be enabled by including within each `MQ_ENDPOINTS` then following fields:
+  ```
+  CIPHER_SUITE - If present in the env.json, TLS Cipher specification to use
+  KEY_REPOSITORY - Path to the keystore .kbd and .sth files. If running on Apple Silicon then this will the path to the queue manager's exported .pem. If present in the env.json, TLS is enabled - this is on the app side.
+  ```
+- Networking tools: a collection of pre-built tools is integrated into an agent, enabling seamless message transmission between agents within the `OUTBOUND_NETWORK`. These tools facilitate reliable and secure communication, ensuring messages are routed effectively across the network.
+- Listener incoming messages: ability to initiate an asynchronous agent workflow upon receiving a new message in the `INBOUND_NETWORK`.
 
 ## Getting Started
-This python samples are based on https://dsuch.github.io/pymqi/
+These python samples are based on https://dsuch.github.io/pymqi/
 and have been tested with python 3.10.12,3.11.9 and 3.12.5
 
 Python PyMQI library uses the IBM MQ C client libraries through the MQI interface.
@@ -88,7 +91,7 @@ For installation instructions please go to
 
 ### Clone the repository
 ```
-git clone https://github.ibm.com/FrancescoRinaldi/agentic-mq
+git clone git@github.com:ibm-messaging/mq-agentic-ai.git
 cd mq-agentic-ai
 ```
 
@@ -110,7 +113,7 @@ Start the primary agent
 ```
 python start_primary_agent.py
 ```
-In another terminal (rememver to export Link MQ Toolkit libs) start the price emitter to simulate dynamic flights prices as a state updates. By asking to the primary agent the flight price at different stage of the conversation it will result in different prices provided back as a reply because the agent state is updated in the background according to the udaptes sent by the price emitter.
+In a separate terminal (ensure Link MQ Toolkit libraries are exported), launch the price emitter to simulate dynamic flight price updates as state changes. Querying the primary agent for flight prices at various conversation stages will yield different prices, as the agent's state is updated in the background based on the price emitter's updates.
 ```
 python start_pricing_update.py
 ```
@@ -128,7 +131,7 @@ User: whats the latest price?
 Assistant: The latest price for your tracked flight (Flight FR5678) from Newcastle to Faro on May 11, 2025, is £151. There are 3 seats left. If you have any other questions or need assistance, just let me know!
 ```
 #### MQ For Distributed Multi-Agent Systems (DMAS)
-Start the primary agent and ask for a new flight booking. You will notice that this request will be delegated to the FlightSearchAgent which is running on its own resource&network and it will handle and reply to the incominc flight booking request whenever available. Regardless of the up/down state of FlightSearchAgent the the flight booking request won't be lost as IBM MQ is used to exchange async messages in a relibale and secure way.
+Launch the primary agent and request a new flight booking. The request will be delegated to the FlightSearchAgent, which operates on its own resource and network, handling and responding to the booking request when available. Even if the FlightSearchAgent is up or down, the booking request remains secure and reliable, as IBM MQ facilitates asynchronous message exchange.
 ```
 python start_primary_agent.py
 ```
@@ -181,7 +184,7 @@ If you need any further assistance or details, feel free to ask!
 ```
 
 ## Want to learn more?
-If you keen to learn more about IBM MQ samples and built applications check [mq-dev-patterns](https://github.com/ibm-messaging/mq-dev-patterns).
+Keen to learn more about IBM MQ samples and built applications? Check [mq-dev-patterns](https://github.com/ibm-messaging/mq-dev-patterns).
 
 
 ## Issue Support
