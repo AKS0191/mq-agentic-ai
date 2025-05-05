@@ -22,7 +22,8 @@ graph = MyGraph().build_graph()
 
 config = {
     "configurable": {                
-        "thread_id": uuid.uuid4()
+        "thread_id": uuid.uuid4(),
+        "ccdt_path": "agents/primary_agent/",
     }
 }
      

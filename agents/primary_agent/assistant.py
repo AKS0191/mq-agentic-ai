@@ -68,14 +68,17 @@ class EventAssistant(MQBaseAssistant):
             ]
     ).partial()
 
-    def __init__(self):
+    def __init__(self, 
+            ccdt_path: str = "agents/primary_agent/", 
+            assistant_id: str = None
+        ) -> None:
         super().__init__(
-            ccdt_path="agents/primary_agent/", 
-            assistant_id=str(uuid.uuid4())
+            ccdt_path=ccdt_path, 
+            assistant_id=assistant_id
         )
         self.reactive_state: ReactiveState = {"flight_info": ""}
         self.bt = StateListener(
-            ccdt_path="agents/primary_agent/",
+            ccdt_path=ccdt_path,
             on_state_change=self.on_state_change
         )        
         self.runnable = self.bind()    
@@ -89,10 +92,10 @@ class EventAssistant(MQBaseAssistant):
         except Exception as e:
             print(f'EventAssistant::on_message::{e}')
              
-    def custom_call(self, state: State, config: RunnableConfig):
-        while True:                  
+    def __call__(self, state: State, config: RunnableConfig):
+        while True:                              
             state = {**state, "flight_info": self.reactive_state["flight_info"]}    
-            result = self.runnable.invoke(state)            
+            result = self.runnable.invoke(state, config=config)            
             if not result.tool_calls and (
                 not result.content
                 or (isinstance(result.content, list) and not result.content[0].get("text"))

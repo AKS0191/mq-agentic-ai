@@ -22,7 +22,7 @@ from mq_sdk.utilities.env import EnvStore
 from mq_sdk.utilities.types import MQAgentInfo
 from .MQPromptTemplate import MQPromptTemplate
 from mq_sdk.utilities.constants import NETWORK_TYPE
-from .MQTools import contact_external_agent
+from .MQTools import ContactExternalAgentTool
 
 
 class MQBaseAssistant:
@@ -30,24 +30,11 @@ class MQBaseAssistant:
         self.ccdt_path = ccdt_path
         self.assistant_id = assistant_id
         self.env_store = EnvStore(ccdt_path, NETWORK_TYPE.OUTBOUND_NETWORK)
-
-    def __init_subclass__(cls, **kwargs):
-        super().__init_subclass__(**kwargs)
-        if "__call__" in cls.__dict__:
-            raise TypeError(f"{cls.__name__} should not override __call__. Please implement custom_call.")
-
-    def __call__(self, state, config: RunnableConfig):                
-        config["configurable"]["ccdt"] = self.env_store.getEnv()
-        config["configurable"]["assistant_id"] = self.assistant_id
-        return self.custom_call(state, config)
-
-    def custom_call(self, state, config: RunnableConfig):
-        raise NotImplementedError("Subclasses must implement custom_call.")
-    
+        
     def format_prompt_template(self, prompt: ChatPromptTemplate) -> MQPromptTemplate:
         agents_info: List[MQAgentInfo] = self.env_store.get_agents_info()        
         return MQPromptTemplate.format_prompt(agents_info, prompt)        
 
     def bind_tools(self, llm: BaseChatModel, tools: list):
-        tools.append(contact_external_agent)
+        tools.append(ContactExternalAgentTool())
         return llm.bind_tools(tools)

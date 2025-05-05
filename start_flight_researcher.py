@@ -21,10 +21,11 @@ from agents.flights_searcher.graph import MyGraph
 from mq_sdk.utilities.types import Message
 
 config = {
-            "configurable": {                
-                "thread_id": uuid.uuid4()
-            }
-        }
+    "configurable": {                
+        "thread_id": uuid.uuid4(),
+        "ccdt_path": "agents/flights_searcher/",
+    }
+}
 
 class TaskManager:
     _printed = set()

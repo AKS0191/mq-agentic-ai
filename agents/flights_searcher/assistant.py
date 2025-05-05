@@ -65,26 +65,28 @@ class FlightSearcherAgent(MQBaseAssistant):
                 ("placeholder", "{messages}"),
             ]
     ).partial()
-
-    def __init__(self):
+   
+    def __init__(self, 
+        ccdt_path: str = "agents/flights_searcher/", 
+        assistant_id: str = None
+    ) -> None:
         super().__init__(
-            ccdt_path="agents/flights_searcher/", 
-            assistant_id=str(uuid.uuid4())
-        )
+            ccdt_path=ccdt_path, 
+            assistant_id=assistant_id
+        )                
         self.runnable = self.bind()    
 
     def on_state_change(self, msgObject: str):         
         try:            
             flight_infoJSON = json.loads(msgObject["Object"])            
-            print(f'EventAssistant::on_message::{flight_infoJSON}')
-            # should be better handle with singleton pattern for mutual exclusion
+            print(f'EventAssistant::on_message::{flight_infoJSON}')          
             self.reactive_state["flight_info"] = flight_infoJSON
         except Exception as e:
             print(f'EventAssistant::on_message::{e}')
              
-    def custom_call(self, state: State, config: RunnableConfig):
+    def __call__(self, state: State, config: RunnableConfig):
         while True:                  
-            result = self.runnable.invoke(state)            
+            result = self.runnable.invoke(state, config=config)            
             if not result.tool_calls and (
                 not result.content
                 or (isinstance(result.content, list) and not result.content[0].get("text"))
