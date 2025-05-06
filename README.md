@@ -1,6 +1,7 @@
 <p align="center">
   <img src="https://github.com/ibm-messaging/mq-agentic-ai/blob/main/image-md.png" alt="alt text">
 </p>
+
 # IBM MQ for LLM Agentic Applications
 This repository demonstrates the integration of IBM MQ with LLM Agentic Applications to support event-driven agents and Distributed Multi-Agent Systems (DMAS), an advanced evolution of traditional multi-agent systems. At the moment we have only integrated with LangGraph, a popular open-source agentic AI framework, to demonstrate our vision for MQ as async message broker. However, we hope to see this work lead to integrations with existing protocols (A2A, ACP, MCP), other agentic frameworks, and use cases.
 
