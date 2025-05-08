@@ -8,19 +8,19 @@ We are excited to share a proof-of-concept demo on how IBM MQ can be integrated 
 The demo explores how IBM MQ can support asynchronous, agent-based architectures by addressing limitations in existing agent protocols like ACP and A2A, which use JSON-RPC over HTTP or Server-Sent Events. These protocols struggle with complex, distributed systems due to limited support for retries, persistence, queuing, durability, and resilience under high load. IBM MQ offers reliable state updates, durable asynchronous messaging, security, and transactional integrity, complementing existing protocols. The aim is to gather feedback and engage organizations, leveraging IBM MQ’s proven enterprise-grade messaging features for mission-critical agent systems, rather than replacing current approaches. 
 
 The repo includes two core scenarios: 
-- Agent State Updates via Pub/Sub (MQ for Agent State Management): The primary agent uses MQ to receive real-time state updates from external events. A price emitter demonstrates how an agent can adjust its responses dynamically as its state changes mid-conversation.     
-- Distributed Multi-Agent Communication (MQ for Distributed Agents): The primary agent and a flight searcher agent operate in separate environments. They exchange messages over MQ queues, demonstrating resilient communication even if one agent becomes unavailable or is temporarily offline. 
+- Agent State Updates via Pub/Sub: The primary agent uses MQ to receive real-time state updates from external events. A price emitter demonstrates how an agent can adjust its responses dynamically as its state changes mid-conversation.     
+- Distributed Multi-Agent Communication: The primary agent and a flight searcher agent operate in separate environments. They exchange messages over MQ queues, demonstrating resilient communication even if one agent becomes unavailable or is temporarily offline. 
 Agents define both outbound and inbound messaging networks through configuration files, making it straightforward to connect and scale additional agents. 
 
 We are interested in speaking with teams working on agent-based systems, especially those where reliability, scalability, and secure messaging are priorities. We welcome feedback, ideas, and collaboration opportunities. 
 At the moment, we have only integrated with [LangGraph](https://www.langchain.com/langgraph), a popular open-source agentic AI framework, to demonstrate our vision for MQ as async message broker. However, we hope to see this work lead to integrations with existing protocols (A2A, ACP, MCP), other agentic frameworks, and use cases. 
 
-# MQ for Agent State Management
+# MQ for Agent State Updates
 The `primary_agent` is a LangGraph-based example illustrating how IBM MQ enables real-time agent state updates. This feature leverages the MQ Publish/Subscribe pattern, ideal for scenarios where an agent’s state must reflect external events. To enable this:
 - The agent’s `env.json` `STATE_NETWORK` configuration specifies the IBM MQ topic for receiving state updates.
 - A callback method (`on_state_change`) processes these updates within the agent, ensuring dynamic state management.
 
-# MQ for Distributed Agents
+# MQ for Distributed Multi-Agent Communication
 The `primary_agent` and `flights_searcher` agents demonstrate how IBM MQ supports Distributed Multi-Agent Systems (DMAS). 
 DMAS extends traditional multi-agent systems by allowing agents to operate asynchronously on independent networks, collaborating through reliable message exchange via IBM MQ. 
 Each agent’s network configuration, defined in `env.json`, includes `OUTBOUND_NETWORK` for delegating tasks to other agents based on their `AGENT_DESCRIPTION` and `INBOUND_NETWORK` for receiving messages from other agents via a specified queue. 
