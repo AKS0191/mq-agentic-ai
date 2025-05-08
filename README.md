@@ -4,11 +4,12 @@
 
 # IBM MQ for LLM Agentic Applications
 We are excited to share a proof-of-concept demo on how IBM MQ can be integrated into Large Language Model (LLM) agentic applications and Distributed Multi-Agent Systems (DMAS). Read more about what AI agents are [here](https://www.ibm.com/think/topics/ai-agents-vs-ai-assistants).
+
 The demo explores how IBM MQ can support asynchronous, agent-based architectures by addressing limitations in existing agent protocols like ACP and A2A, which use JSON-RPC over HTTP or Server-Sent Events. These protocols struggle with complex, distributed systems due to limited support for retries, persistence, queuing, durability, and resilience under high load. IBM MQ offers reliable state updates, durable asynchronous messaging, security, and transactional integrity, complementing existing protocols. The aim is to gather feedback and engage organizations, leveraging IBM MQ’s proven enterprise-grade messaging features for mission-critical agent systems, rather than replacing current approaches. 
 
 The repo includes two core scenarios: 
-    - Agent State Updates via Pub/Sub (MQ for Agent State Management): The primary agent uses MQ to receive real-time state updates from external events. A price emitter demonstrates how an agent can adjust its responses dynamically as its state changes mid-conversation.     
-    - Distributed Multi-Agent Communication (MQ for Distributed Agents): The primary agent and a flight searcher agent operate in separate environments. They exchange messages over MQ queues, demonstrating resilient communication even if one agent becomes unavailable or is temporarily offline. 
+- Agent State Updates via Pub/Sub (MQ for Agent State Management): The primary agent uses MQ to receive real-time state updates from external events. A price emitter demonstrates how an agent can adjust its responses dynamically as its state changes mid-conversation.     
+- Distributed Multi-Agent Communication (MQ for Distributed Agents): The primary agent and a flight searcher agent operate in separate environments. They exchange messages over MQ queues, demonstrating resilient communication even if one agent becomes unavailable or is temporarily offline. 
 Agents define both outbound and inbound messaging networks through configuration files, making it straightforward to connect and scale additional agents. 
 
 We are interested in speaking with teams working on agent-based systems, especially those where reliability, scalability, and secure messaging are priorities. We welcome feedback, ideas, and collaboration opportunities. 
