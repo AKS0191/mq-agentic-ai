@@ -13,13 +13,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
-import ssl
 import certifi
 
-# Force all SSL connections to use certifi's CA bundle
+# Force all Python HTTPS calls to use certifi CA bundle
 os.environ["SSL_CERT_FILE"] = certifi.where()
-ssl_context = ssl.create_default_context(cafile=certifi.where())
-ssl._create_default_https_context = ssl_context
+os.environ["REQUESTS_CA_BUNDLE"] = certifi.where()
+
 
 
 
