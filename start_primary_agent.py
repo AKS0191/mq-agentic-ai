@@ -12,6 +12,11 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import os, ssl, certifi
+
+os.environ["SSL_CERT_FILE"] = certifi.where()
+ssl._create_default_https_context = ssl.create_default_context
+
 
 from datetime import *
 import uuid
