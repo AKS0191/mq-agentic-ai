@@ -15,7 +15,6 @@
 import os
 import certifi
 
-# Force all Python HTTPS calls to use certifi CA bundle
 os.environ["SSL_CERT_FILE"] = certifi.where()
 os.environ["REQUESTS_CA_BUNDLE"] = certifi.where()
 
