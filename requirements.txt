@@ -1,6 +1,17 @@
+# Core LLM + agentic framework
 langgraph
 langgraph-checkpoint
-langchain_openai
-langchain_community
 langgraph-sdk
+
+# LangChain integrations
+langchain-openai
+langchain-community
+
+# IBM MQ client
 pymqi
+
+# SSL certificates
+certifi
+
+# Environment variable management
+python-dotenv
