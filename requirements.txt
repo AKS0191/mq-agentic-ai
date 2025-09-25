@@ -15,3 +15,4 @@ certifi
 
 # Environment variable management
 python-dotenv
+truststore==0.10.4
