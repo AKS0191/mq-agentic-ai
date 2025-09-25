@@ -27,8 +27,14 @@ from mq_sdk.mq_agent.MQBaseAssistant import MQBaseAssistant
 import time
 import uuid
 import json
-load_dotenv()
 from pydantic import BaseModel
+
+# 🔑 Added imports for SSL fix
+import httpx, certifi
+from openai import OpenAI
+
+load_dotenv()
+
 
 class FlightInfo(BaseModel):
     airline: str
@@ -42,9 +48,11 @@ class FlightInfo(BaseModel):
     price: str
     seats_left: str
 
+
 class State(TypedDict):
     messages: Annotated[list[AnyMessage], add_messages]    
     flight_info: str
+
 
 class EventAssistant(MQBaseAssistant):    
     messages = []        
@@ -107,7 +115,16 @@ class EventAssistant(MQBaseAssistant):
         return {"messages": result}
         
     def bind(self):
-        llm = ChatOpenAI(model="gpt-4o-mini-2024-07-18", temperature=0)
+        # 🔑 Use certifi-backed OpenAI client to avoid SSL issues
+        http_client = httpx.Client(verify=certifi.where())
+        openai_client = OpenAI(http_client=http_client)
+
+        llm = ChatOpenAI(
+            model="gpt-4o-mini-2024-07-18",
+            temperature=0,
+            client=openai_client,
+        )
+
         mq_chat_template = self.format_prompt_template(self.primary_assistant_prompt)      
         return mq_chat_template | self.bind_tools(llm, self.tools)
     
