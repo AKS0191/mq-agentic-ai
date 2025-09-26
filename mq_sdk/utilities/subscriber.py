@@ -2,7 +2,7 @@
 # © Copyright IBM Corporation 2024, 2025
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
+# You may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
 #
 #     http://www.apache.org/licenses/LICENSE-2.0
@@ -15,6 +15,7 @@
 
 import pymqi
 import logging
+import uuid
 
 from .env import EnvStore  
 from mq_sdk.utilities.constants import NETWORK_TYPE
@@ -26,8 +27,8 @@ logger = logging.getLogger(__name__)
 class MQSubscriber:    
     def __init__(self, ccdt_path: str):        
         self.envStore = EnvStore(
-            ccdt_path = ccdt_path,
-            network_type = NETWORK_TYPE.STATE_NETWORK 
+            ccdt_path=ccdt_path,
+            network_type=NETWORK_TYPE.STATE_NETWORK 
         )
         self.envStore.setEnv()
         
@@ -44,29 +45,25 @@ class MQSubscriber:
 
     def buildMQDetails(self):        
         for key in [self.envStore.QMGR, self.envStore.TOPIC_NAME, self.envStore.CHANNEL,
-                    self.envStore.HOST, self.envStore.PORT, self.envStore.KEY_REPOSITORY, self.envStore.CIPHER]:
+                    self.envStore.HOST, self.envStore.PORT, self.envStore.KEY_REPOSITORY, self.envStore.CIPHER,
+                    self.envStore.AGENT_NAME]:
             self.MQDetails[key] = self.envStore.getEnvValue(key)
 
     def connect(self):        
         logger.info('Establishing connection with MQ Server')
         try:
-            cd = None
-            if True:
-                logger.info('CCDT URL export is not set; using JSON environment client connection settings.')
-                cd = pymqi.CD(Version=pymqi.CMQXC.MQCD_VERSION_11)
-                cd.ChannelName = self.MQDetails[self.envStore.CHANNEL]
-                cd.ConnectionName = self.conn_info
-                cd.ChannelType = pymqi.CMQC.MQCHT_CLNTCONN
-                cd.TransportType = pymqi.CMQC.MQXPT_TCP
+            cd = pymqi.CD(Version=pymqi.CMQXC.MQCD_VERSION_11)
+            cd.ChannelName = self.MQDetails[self.envStore.CHANNEL]
+            cd.ConnectionName = self.conn_info
+            cd.ChannelType = pymqi.CMQC.MQCHT_CLNTCONN
+            cd.TransportType = pymqi.CMQC.MQXPT_TCP
 
-                logger.info('Checking cipher details')
-                if self.MQDetails[self.envStore.CIPHER]:
-                    logger.info('Using cipher details')
-                    cd.SSLCipherSpec = self.MQDetails[self.envStore.CIPHER]
-                    
+            logger.info('Checking cipher details')
+            if self.MQDetails[self.envStore.CIPHER]:
+                cd.SSLCipherSpec = self.MQDetails[self.envStore.CIPHER]
+
             sco = pymqi.SCO()
             if self.MQDetails[self.envStore.KEY_REPOSITORY]:
-                logger.info('Setting key repository')
                 sco.KeyRepository = self.MQDetails[self.envStore.KEY_REPOSITORY]
 
             options = pymqi.CMQC.MQPMO_NEW_CORREL_ID
@@ -87,15 +84,16 @@ class MQSubscriber:
     def getSubscription(self):        
         logger.info('Connecting to subscription')
         try:
+            # Generate a unique subscription name per run
+            unique_sub_name = f"{self.MQDetails[self.envStore.AGENT_NAME]}_{uuid.uuid4()}"
+
             sub_desc = pymqi.SD()
             sub_desc["Options"] = (
-                pymqi.CMQC.MQSO_CREATE +
-                pymqi.CMQC.MQSO_RESUME +
-                pymqi.CMQC.MQSO_DURABLE +
+                pymqi.CMQC.MQSO_CREATE |
+                pymqi.CMQC.MQSO_NON_DURABLE |  # Non-durable avoids MQRC_SUBSCRIPTION_IN_USE
                 pymqi.CMQC.MQSO_MANAGED
             )
-            sub_desc.set_vs("SubName", "MySub")
-            print(f'>>>> Using the following details: {self.MQDetails}')
+            sub_desc.set_vs("SubName", unique_sub_name)
             sub_desc.set_vs("ObjectString", self.MQDetails[self.envStore.TOPIC_NAME])
 
             if self.qmgr is None:
@@ -104,7 +102,7 @@ class MQSubscriber:
 
             self.subscription = pymqi.Subscription(self.qmgr)
             self.subscription.sub(sub_desc=sub_desc)
-            logger.info("Subscription established")
+            logger.info(f"Subscription established: {unique_sub_name}")
             return self.subscription
 
         except pymqi.MQMIError as e:
@@ -137,15 +135,14 @@ class MQSubscriber:
         self.connect()
         if self.qmgr:
             self.getSubscription()
-        if self.subscription:
-            return True
-        else:
-            return False
+        return self.subscription is not None
 
-    def close():
-        self.subscription.close(sub_close_options=pymqi.CMQC.MQCO_KEEP_SUB, close_sub_queue=True)
-        self.qmgr.disconnect()
-
-
-
-
+    def close(self):
+        try:
+            if self.subscription:
+                self.subscription.close(sub_close_options=pymqi.CMQC.MQCO_KEEP_SUB, close_sub_queue=True)
+            if self.qmgr:
+                self.qmgr.disconnect()
+            logger.info("MQSubscriber: Closed subscription and disconnected")
+        except Exception as e:
+            logger.error(f"Error during close: {e}")

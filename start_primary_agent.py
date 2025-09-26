@@ -1,28 +1,29 @@
 # -*- coding: utf-8 -*-
+"""
+Start Primary Agent (CLI / Rich TUI / Tk GUI)
+Handles local LLM via Ollama or OpenAI.
+Falls back to echo if graph/LLM unavailable.
+"""
+
 import os
 import uuid
 import argparse
 import threading
 import queue
-import certifi
-import truststore
+from mq_sdk.utilities.subscriber import MQSubscriber
 
-truststore.inject_into_ssl()
-os.environ["SSL_CERT_FILE"] = certifi.where()
-
-# Optional Rich (terminal UI enhancements)
+# Optional Rich UI
 _RICH_OK = False
 try:
     from rich.console import Console
     from rich.panel import Panel
-    from rich.prompt import Prompt
     from rich.markdown import Markdown
     _RICH_OK = True
     console = Console()
 except Exception:
-    console = None  # type: ignore
+    console = None
 
-# Optional Tkinter (GUI)
+# Optional Tkinter GUI
 _TK_OK = False
 try:
     import tkinter as tk
@@ -31,101 +32,106 @@ try:
 except Exception:
     pass
 
-# Config / state
+# Runtime config placeholder
 _config = {
     "configurable": {
         "thread_id": uuid.uuid4(),
         "ccdt_path": "agents/primary_agent/",
     }
 }
-_graph = None
-_printed_ids = set()
 
-
-def debug(msg: str, enabled: bool):
-    if not enabled:
-        return
-    if _RICH_OK and console:
-        console.log(f"[debug] {msg}")
-    else:
-        print(f"[DEBUG] {msg}")
-
-
-def build_graph(debug_enabled=False):
-    global _graph
-    if _graph is None:
-        debug("Building graph...", debug_enabled)
-        from agents.primary_agent.graph import MyGraph
-        _graph = MyGraph().build_graph()
-        debug("Graph built.", debug_enabled)
-    return _graph
-
-
-def _final_ai_message_from_event(message):
-    if not message:
-        return None
-    if isinstance(message, list):
-        message = message[-1]
-    if message.id in _printed_ids:
-        return None
-    if message.type == "ai" and not getattr(message, "tool_calls", None):
-        _printed_ids.add(message.id)
-        return message.content
-    return None
-
-
+# -----------------------------
+# Stream response function
+# -----------------------------
 def stream_response(user_input: str, emit_callback, debug_enabled=False):
-    graph = build_graph(debug_enabled)
-    events = graph.stream(
-        {"messages": ("user", user_input), "flight_info": ""},
-        _config,
-        stream_mode="values"
-    )
-    for event in events:
-        content = _final_ai_message_from_event(event.get("messages"))
-        if content:
-            emit_callback(content)
-            break
-
-
-def process_message_plain(user_input: str, debug_enabled=False):
-    stream_response(user_input, lambda c: print(f"\nAssistant: {c}"), debug_enabled)
-
-
-def process_message_rich(user_input: str, debug_enabled=False):
-    if not _RICH_OK or not console:
-        return process_message_plain(user_input, debug_enabled)
-    with console.status(f"[cyan]Thinking: {user_input}"):
-        holder = {}
-        stream_response(user_input, lambda c: holder.setdefault("resp", c), debug_enabled)
-    resp = holder.get("resp", "(no response)")
-    console.print(
-        Panel(
-            Markdown(str(resp)) if isinstance(resp, str) else str(resp),
-            title="Assistant",
-            border_style="green"
-        )
-    )
-
-
-def process_message(user_input: str, use_rich: bool, debug_enabled=False):
-    if use_rich and _RICH_OK:
-        process_message_rich(user_input, debug_enabled)
-    else:
-        process_message_plain(user_input, debug_enabled)
-
-
-def safe_input(prompt_text: str) -> str:
+    """
+    Streams AI response for a user input.
+    Falls back to echo if graph or LLM backend fails.
+    Prints which backend is used.
+    """
     try:
-        return input(prompt_text)
-    except EOFError:
-        return ""
-    except KeyboardInterrupt:
-        return "exit"
+        from agents.primary_agent.graph import MyGraph
+        from agents.primary_agent.event_assistant import EventAssistant
 
+        graph = MyGraph().build_graph(debug_enabled=debug_enabled)
+        if graph is None:
+            raise RuntimeError("Graph is None. Falling back to assistant.")
 
+        events = graph.stream(
+            {"messages": ("user", user_input), "flight_info": ""},
+            _config,
+            stream_mode="values"
+        )
+
+        for event in events:
+            content = None
+            backend = "unknown"
+            msgs = event.get("messages")
+            if msgs:
+                msg = msgs[-1] if isinstance(msgs, list) else msgs
+                if getattr(msg, "type", None) == "ai":
+                    content = getattr(msg, "content", None)
+                    backend = getattr(msg, "backend", "AI")
+
+            if content:
+                emit_callback(f"[{backend}] {content}")
+                break
+
+    except Exception as e:
+        if debug_enabled:
+            print(f"[DEBUG] Stream error: {e}")
+        try:
+            assistant = EventAssistant()
+            response = assistant.ask(user_input)
+            emit_callback(f"[{assistant.backend}] {response}")
+        except Exception as e2:
+            if debug_enabled:
+                print(f"[DEBUG] Fallback assistant failed: {e2}")
+            emit_callback(f"[echo] {user_input}")
+
+# -----------------------------
+# CLI interaction
+# -----------------------------
+def run_cli(use_rich=True, debug_enabled=False, subscriber=None):
+    if use_rich and _RICH_OK and console:
+        console.print("[bold green]Type your message. (quit/exit to leave)[/bold green]")
+    else:
+        print("Type your message. (quit/exit to leave)")
+
+    try:
+        while True:
+            if use_rich and _RICH_OK and console:
+                try:
+                    user_text = console.input("\n[bold blue]User> [/]")
+                except (EOFError, KeyboardInterrupt):
+                    user_text = "exit"
+            else:
+                try:
+                    user_text = input("\nUser> ")
+                except (EOFError, KeyboardInterrupt):
+                    user_text = "exit"
+
+            if not user_text:
+                continue
+            if user_text.lower() in ("quit", "exit", "q"):
+                farewell = "Goodbye."
+                if use_rich and _RICH_OK and console:
+                    console.print(f"[magenta]{farewell}")
+                else:
+                    print(farewell)
+                break
+
+            stream_response(user_text, lambda r: print(f"Assistant: {r}"))
+    finally:
+        if subscriber:
+            subscriber.close()
+
+# -----------------------------
+# GUI interaction
+# -----------------------------
 class ChatGUI:
-    def __init__(self, debug_enabled=False):
+    def __init__(self, subscriber, debug_enabled=False):
+        self.subscriber = subscriber
         self.debug_enabled = debug_enabled
         self.root = tk.Tk()
         self.root.title("Primary Agent Chat")
@@ -139,12 +145,10 @@ class ChatGUI:
         self.entry.pack(side="left", fill="x", expand=True)
         self.entry.bind("<Return>", self.on_send)
         tk.Button(bar, text="Send", command=self.on_send).pack(side="left", padx=6)
-        tk.Button(bar, text="Quit", command=self.root.destroy).pack(side="left")
-
+        tk.Button(bar, text="Quit", command=self._quit).pack(side="left")
         self.entry.focus_set()
         self.msg_queue = queue.Queue()
         self.root.after(120, self._drain_queue)
-        self._append("[system] Ready. Type and press Enter. /quit to exit.\n", "sys")
         threading.Thread(target=self._fetch, args=("Hi",), daemon=True).start()
 
     def _append(self, text, tag=None):
@@ -161,7 +165,7 @@ class ChatGUI:
         if not msg:
             return
         if msg.lower() in ("/quit", "/exit"):
-            self.root.destroy()
+            self._quit()
             return
         self._append(f"User: {msg}\n", "user")
         self.entry.delete(0, "end")
@@ -179,58 +183,39 @@ class ChatGUI:
             pass
         self.root.after(120, self._drain_queue)
 
+    def _quit(self):
+        if self.subscriber:
+            self.subscriber.close()
+        self.root.destroy()
+
     def run(self):
         self.root.mainloop()
 
-
-def run_cli(use_rich=True, debug_enabled=False):
-    if use_rich and _RICH_OK and console:
-        console.print("[bold green]Type your message. (quit/exit to leave)[/bold green]")
-    else:
-        print("Type your message. (quit/exit to leave)")
-    process_message("Hi", use_rich, debug_enabled)
-    while True:
-        if use_rich and _RICH_OK and console:
-            try:
-                user_text = console.input("\n[bold blue]User> [/]")
-            except (EOFError, KeyboardInterrupt):
-                user_text = "exit"
-        else:
-            user_text = safe_input("\nUser> ")
-        if not user_text:
-            continue
-        if user_text.lower() in ("quit", "exit", "q"):
-            farewell = "Goodbye."
-            if use_rich and _RICH_OK and console:
-                console.print(f"[magenta]{farewell}")
-            else:
-                print(farewell)
-            break
-        process_message(user_text, use_rich, debug_enabled)
-
-
+# -----------------------------
+# Main entry point
+# -----------------------------
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--gui", action="store_true", help="Launch Tk GUI")
-    parser.add_argument("--no-rich", action="store_true", help="Disable Rich TUI even if available")
+    parser.add_argument("--no-rich", action="store_true", help="Disable Rich TUI")
     parser.add_argument("--debug", action="store_true", help="Enable debug logging")
     args = parser.parse_args()
 
     use_rich = (not args.no_rich) and _RICH_OK
 
-    if args.gui:
-        if not _TK_OK:
-            msg = "Tkinter not available. Falling back to CLI."
-            if use_rich and console:
-                console.print(f"[red]{msg}[/red]")
-            else:
-                print(msg)
-            run_cli(use_rich, args.debug)
-        else:
-            ChatGUI(debug_enabled=args.debug).run()
-    else:
-        run_cli(use_rich, args.debug)
+    # Initialize MQSubscriber
+    subscriber = MQSubscriber(ccdt_path="agents/primary_agent/")
+    if not subscriber.subscribe():
+        print("Failed to create MQ subscription. Exiting.")
+        return
 
+    try:
+        if args.gui and _TK_OK:
+            ChatGUI(subscriber=subscriber, debug_enabled=args.debug).run()
+        else:
+            run_cli(use_rich=use_rich, debug_enabled=args.debug, subscriber=subscriber)
+    finally:
+        subscriber.close()
 
 if __name__ == "__main__":
     main()
