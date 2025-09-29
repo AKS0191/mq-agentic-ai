@@ -12,15 +12,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-# start_primary_agent.py (very top, before anything else)
-import truststore
-truststore.inject_into_ssl()
-
-import os
-import certifi
-os.environ["SSL_CERT_FILE"] = certifi.where()
-
-
 
 from datetime import *
 import uuid
